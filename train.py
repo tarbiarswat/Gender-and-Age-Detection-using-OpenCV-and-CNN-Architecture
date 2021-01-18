@@ -22,10 +22,8 @@ img_dims = (96,96,3)
 data = []
 labels = []
 
-
 image_files = [f for f in glob.glob(r'E:\Files\Semesters\CSE465.2\Repo\gender_dataset_face' + "/**/*", recursive=True) if not os.path.isdir(f)]
 random.shuffle(image_files)
-
 
 for img in image_files:
 
@@ -43,11 +41,8 @@ for img in image_files:
         
     labels.append([label]) 
 
-
 data = np.array(data, dtype="float") / 255.0
 labels = np.array(labels)
-
-
 
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.2,
                                                   random_state=42)
@@ -60,7 +55,6 @@ aug = ImageDataGenerator(rotation_range=25, width_shift_range=0.1,
                          height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
                          horizontal_flip=True, fill_mode="nearest")
 
-
 def build(width, height, depth, classes):
     model = Sequential()
     inputShape = (height, width, depth)
@@ -70,8 +64,6 @@ def build(width, height, depth, classes):
         inputShape = (depth, height, width)
         chanDim = 1
     
-    
-
     model.add(Conv2D(32, (3,3), padding="same", input_shape=inputShape))
     model.add(Activation("relu"))
     model.add(BatchNormalization(axis=chanDim))
@@ -108,3 +100,33 @@ def build(width, height, depth, classes):
     model.add(Activation("sigmoid"))
 
     return model
+    
+    model = build(width=img_dims[0], height=img_dims[1], depth=img_dims[2],
+                                classes=2)
+
+    
+    opt = Adam(lr=lr, decay=lr/epochs)
+    model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
+
+    H = model.fit_generator(aug.flow(trainX, trainY, batch_size=batch_size),
+                            validation_data=(testX,testY),
+                            steps_per_epoch=len(trainX) // batch_size,
+                            epochs=epochs, verbose=1)
+
+    
+    model.save('gender_detection.model')
+    
+    plt.style.use("ggplot")
+    plt.figure()
+    N = epochs
+    plt.plot(np.arange(0,N), H.history["loss"], label="train_loss")
+    plt.plot(np.arange(0,N), H.history["val_loss"], label="val_loss")
+    plt.plot(np.arange(0,N), H.history["acc"], label="train_acc")
+    plt.plot(np.arange(0,N), H.history["val_acc"], label="val_acc")
+
+    plt.title("Training Loss and Accuracy")
+    plt.xlabel("Epoch #")
+    plt.ylabel("Loss/Accuracy")
+    plt.legend(loc="upper right")
+
+    plt.savefig('plot.png')
