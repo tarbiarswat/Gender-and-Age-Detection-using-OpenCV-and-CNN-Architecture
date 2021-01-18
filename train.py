@@ -41,10 +41,70 @@ for img in image_files:
     else:
         label = 0
         
-    labels.append([label]) # [[1], [0], [0], ...]
+    labels.append([label]) 
 
 
 data = np.array(data, dtype="float") / 255.0
 labels = np.array(labels)
 
 
+
+(trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.2,
+                                                  random_state=42)
+
+trainY = to_categorical(trainY, num_classes=2) 
+testY = to_categorical(testY, num_classes=2)
+
+
+aug = ImageDataGenerator(rotation_range=25, width_shift_range=0.1,
+                         height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
+                         horizontal_flip=True, fill_mode="nearest")
+
+
+def build(width, height, depth, classes):
+    model = Sequential()
+    inputShape = (height, width, depth)
+    chanDim = -1
+
+    if K.image_data_format() == "channels_first": 
+        inputShape = (depth, height, width)
+        chanDim = 1
+    
+    
+
+    model.add(Conv2D(32, (3,3), padding="same", input_shape=inputShape))
+    model.add(Activation("relu"))
+    model.add(BatchNormalization(axis=chanDim))
+    model.add(MaxPooling2D(pool_size=(3,3)))
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(64, (3,3), padding="same"))
+    model.add(Activation("relu"))
+    model.add(BatchNormalization(axis=chanDim))
+
+    model.add(Conv2D(64, (3,3), padding="same"))
+    model.add(Activation("relu"))
+    model.add(BatchNormalization(axis=chanDim))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(128, (3,3), padding="same"))
+    model.add(Activation("relu"))
+    model.add(BatchNormalization(axis=chanDim))
+
+    model.add(Conv2D(128, (3,3), padding="same"))
+    model.add(Activation("relu"))
+    model.add(BatchNormalization(axis=chanDim))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Dropout(0.25))
+
+    model.add(Flatten())
+    model.add(Dense(1024))
+    model.add(Activation("relu"))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.5))
+
+    model.add(Dense(classes))
+    model.add(Activation("sigmoid"))
+
+    return model
